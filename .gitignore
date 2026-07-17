@@ -1,0 +1,27 @@
+# Data (avoid committing large/raw data files)
+data/raw/
+data/processed/
+*.csv
+*.xlsx
+*.json
+!data/README.md
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+venv/
+env/
+.env
+
+# VSCode
+.vscode/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Logs / outputs
+*.log
+output/
