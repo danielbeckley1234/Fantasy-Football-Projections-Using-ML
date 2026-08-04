@@ -20,7 +20,7 @@ ccontracts = contracts[contract_col_keep]
 ccontracts = ccontracts[ccontracts['position'].isin(pos_keep)]
 ccontracts = ccontracts[ccontracts['year_signed'] > 0]
 ccontracts = ccontracts[ccontracts['years'] > 0]
-ccontracts["pct_gtd_sign"] = ccontracts["inflated_guaranteed"] / ccontracts["inflated_value"]
+ccontracts["pct_gtd_sign"] = round(ccontracts["inflated_guaranteed"] / ccontracts["inflated_value"], 3)
 
 draft_picks = draft[draft['gsis_id'].isin(ccontracts['gsis_id'])]
 draft_picks = draft_picks[['gsis_id', 'round', 'pick']].drop_duplicates(subset=['gsis_id'], keep='first')
