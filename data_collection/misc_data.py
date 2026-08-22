@@ -4,7 +4,7 @@ import pandas as pd
 
 # filters
 contract_keep = ['gsis_id', 'year_signed', 'years', 'inflated_value', 'inflated_guaranteed', 'inflated_apy']
-pos_keep = ['QB', 'RB', 'WR', 'TE', 'K']
+pos_keep = ['QB', 'RB', 'FB', 'WR', 'TE', 'K']
 player_keep = ['display_name', 'position', 'gsis_id', 'birth_date', 'draft_round', 'draft_pick', 'rookie_season', 'last_season']
 inc_years = list(range(2018, 2027))
 
@@ -22,7 +22,9 @@ print(contracts.head())
 # initial filtering and explode seasons for each year of interest
 players = players[player_keep]
 players = players.rename(columns={'display_name': 'Player'})
+players.loc[players['Player'] == 'Ty Montgomery', 'position'] = 'RB'  # correct position for Ty Montgomery
 players = players[players['position'].isin(pos_keep)]
+
 players = players.dropna(subset=['birth_date'])
 players['birth_date'] = pd.to_datetime(players['birth_date'])
 players = players.assign(Year=[inc_years] * len(players)).explode('Year').reset_index(drop=True)
