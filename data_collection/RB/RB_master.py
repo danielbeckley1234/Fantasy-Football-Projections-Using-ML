@@ -14,14 +14,14 @@ rec = rec.drop(columns=['Player (TM)', 'G', 'FL'])
 
 shares = pd.read_excel(base_path / "RB_shares.xlsx")
 shares = shares.rename(columns={'Tm':'TM'})
-shares = shares.drop(columns=['G'])
+shares = shares.drop(columns=['G', 'Snap%']) # faulty data from FantasyPros for Snap% (exceeds 100% for several player seasons)
 
 misc = pd.read_csv(data_path / "misc_data.csv")
 pos = ['RB', 'FB']
 misc = misc[misc['position'].isin(pos)].copy()
 
 renames = {'Nyheim Miller-Hines': 'Nyheim Hines', 'Nathan Carter': 'Nate Carter'}
-manual_drops = {'LeGarrette Blount', 'Chris Ivory'}
+manual_drops = {'LeGarrette Blount', 'Chris Ivory'} # one season of adequate production followed by an empty season - useless for lagged modeling
 estime_manual = {
     'position': 'RB',
     'gsis_id': 'ESTIME',
