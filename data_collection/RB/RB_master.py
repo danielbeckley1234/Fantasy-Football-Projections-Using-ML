@@ -16,11 +16,29 @@ shares = pd.read_excel(base_path / "RB_shares.xlsx")
 shares = shares.rename(columns={'Tm':'TM'})
 shares = shares.drop(columns=['G', 'Snap%']) # faulty data from FantasyPros for Snap% (exceeds 100% for several player seasons)
 
+injuries = pd.read_excel(base_path / "RB_injuries.xlsx")
+
 misc = pd.read_csv(data_path / "misc_data.csv")
 pos = ['RB', 'FB']
 misc = misc[misc['position'].isin(pos)].copy()
 
+def normalize_player(name):
+    name = re.sub(r'\s+(Jr\.?|Sr\.?|II|III|IV|V)$', '', name)
+    name = re.sub(r"['.]", '', name)
+    return name.strip()
+
 renames = {'Nyheim Miller-Hines': 'Nyheim Hines', 'Nathan Carter': 'Nate Carter'}
+for df in [rush, rec, shares, injuries]:
+    df['Player'] = df['Player'].str.strip()
+    df['Player'] = df['Player'].replace(renames)
+    if 'TM' in df.columns:
+        df['TM'] = df['TM'].str.strip()
+
+merge_keys = ['Player', 'Year', 'TM']
+master = rush.merge(rec, on=merge_keys, how='outer')
+master = master.merge(shares, on=merge_keys, how='outer')
+master = master.merge(injuries, on=['Player', 'Year'], how='outer')
+
 manual_drops = {'LeGarrette Blount', 'Chris Ivory'} # one season of adequate production followed by an empty season - useless for lagged modeling
 estime_manual = {
     'position': 'RB',
@@ -32,25 +50,12 @@ estime_manual = {
     'last_season': 2025,
 }
 
-def normalize_player(name):
-    name = re.sub(r'\s+(Jr\.?|Sr\.?|II|III|IV|V)$', '', name)
-    name = re.sub(r"['.]", '', name)
-    return name.strip()
-
-for df in [rush, rec, shares]:
-    df['Player'] = df['Player'].str.strip()
-    df['Player'] = df['Player'].replace(renames)
-    df['TM'] = df['TM'].str.strip()
-
-merge_keys = ['Player', 'Year', 'TM']
-master = rush.merge(rec, on=merge_keys, how='outer')
-master = master.merge(shares, on=merge_keys, how='outer')
-
 master['norm_name'] = master['Player'].apply(normalize_player)
 misc['norm_name'] = misc['Player'].apply(normalize_player)
 master = master.merge(misc, on=['norm_name', 'Year'], how='left', suffixes=('', '_misc'))
 master = master.drop(columns=['norm_name', 'Player_misc'])
 master = master[~master['Player'].isin(manual_drops)]
+master['signficant_injury'] = master['significant_injury'].fillna(0)
 
 estime_birth = pd.Timestamp(estime_manual['birth_date'])
 for year in [2024, 2025]:
@@ -78,6 +83,8 @@ dropped_vol.to_excel(base_path / "RB_droppedVol.xlsx", index=False)
 # drop players with one year of data besides 2025
 seasons = master.groupby('Player')['Year'].nunique()
 years_played = master.groupby('Player')['Year'].apply(set)
+hines = (master['Player'] == 'Nyheim Hines') & (master['TM'] == 'LAC') & (master['Year'] == 2025) # faulty
+master = master[~hines].reset_index(drop=True)
 
 def keep_player(player):
     if seasons[player] > 1:
