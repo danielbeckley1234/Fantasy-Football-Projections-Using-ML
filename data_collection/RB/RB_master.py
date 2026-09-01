@@ -23,7 +23,7 @@ tds = tds.drop(columns=['Player (TM)'])
 
 misc = pd.read_csv(data_path / "misc_data.csv")
 pos = ['RB']
-misc = misc[misc['position'].isin(pos)].copy()
+misc = misc[misc['position'].isin(pos)]
 
 # normalize player names (particularly for merger between misc and rest)
 def normalize_player(name):
@@ -55,6 +55,7 @@ master['norm_name'] = master['Player'].apply(normalize_player)
 misc['norm_name'] = misc['Player'].apply(normalize_player)
 master = master.merge(misc, on=['norm_name', 'Year'], how='left', suffixes=('', '_misc'))
 master = master.drop(columns=['norm_name', 'Player_misc'])
+master = master[master['position'] == 'RB'].copy()
 
 # audric estime was the only RB of interest who did not appear in the misc dataset
 estime_manual = {
@@ -84,35 +85,26 @@ def vol_check(
         year_col: str = "Year",
         last_season_col: str = "last_season",
         vol_cols: list = ("ATT", "REC"), 
-        prod_thresholds: list = (40, 10),
-        dead_thresholds: list = (20, 10),
+        prod_thresholds: list = (25, 15),
         min_prod: int = 2,
-        min_real: int = 2,
         curr_year_exempt: bool = True,
+        manual_keep: set = frozenset(),
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
 
     vol_cols = list(vol_cols)
     prod_thresholds = list(prod_thresholds)
-    dead_thresholds = list(dead_thresholds)
     max_year = df[year_col].max()
     proj_year = max_year + 1
 
-    # mark productive seasons
+    # mark productive and dead seasons
     prod_ind = pd.Series(False, index=df.index)
     for col, threshold in zip(vol_cols, prod_thresholds):
         prod_ind |= df[col] >= threshold
-
-    # mark dead (not real) seasons
-    dead_ind = pd.Series(True, index=df.index)
-    for col, threshold in zip(vol_cols, dead_thresholds):
-        dead_ind &= df[col] < threshold
-    dead_ind |= df[vol_cols].isna().all(axis=1)
-    real_ind = ~dead_ind
+    dead_ind = ~prod_ind
 
     temp = df[[player_col, year_col, last_season_col]].copy()
     temp["_prod"] = prod_ind
     temp["_dead"] = dead_ind
-    temp["_real"] = real_ind
 
     insuff_prod = []
     tailoff = []
@@ -121,24 +113,25 @@ def vol_check(
         g = g.reset_index(drop=True)
         prod = g["_prod"].tolist()
         dead = g["_dead"].tolist()
-        real = g["_real"].tolist()
         years = g[year_col].tolist()
         n = len(g)
 
-        # insufficient real seasons check
-        real_seasons = sum(real)
-        if real_seasons < min_real:
-            rookie_exempt = curr_year_exempt and years == [max_year]
-            if not rookie_exempt:
+        # insufficient productive seasons check
+        prod_seasons = sum(prod)
+        if prod_seasons < min_prod:
+            rookie = curr_year_exempt and years == [max_year] 
+            prod_rookie = rookie and prod_seasons >= 1
+            manual_exempt = player in manual_keep
+            if not (prod_rookie or manual_exempt):
                 insuff_prod.append(
                     {
                         player_col: player,
-                        "real_seasons": real_seasons,
+                        "prod_seasons": prod_seasons,
                         "total_seasons": n,
                         "years": years,
                     }
                 )
-            continue # no real seasons
+            continue
 
         # tailoff (trailing dead seasons) check
         dead_trail = 0
@@ -170,22 +163,22 @@ def vol_check(
 
     tailoff_df = pd.DataFrame(tailoff)
     if not tailoff_df.empty:
-        tailoff_df = tailoff_df.sort_values(by="end_on_dead", ascending=False).reset_index(drop=True)
+        tailoff_df = tailoff_df.sort_values(by="prod_seasons", ascending=False).reset_index(drop=True)
 
     insuff_df = pd.DataFrame(insuff_prod)
     if not insuff_df.empty:
-        insuff_df = insuff_df.sort_values(by="real_seasons").reset_index(drop=True)
+        insuff_df = insuff_df.sort_values(by="prod_seasons").reset_index(drop=True)
 
     return tailoff_df, insuff_df
 
-tailoff_df, insuff_df = vol_check(master)
+tailoff_df, insuff_df = vol_check(master, manual_keep={"Braelon Allen"})
 insuff_dropped = master[master["Player"].isin(insuff_df["Player"])]
-insuff_dropped.to_excel("RB_dropped_insuff.xlsx", index=False)
+insuff_dropped.to_csv("RB_dropped_insuff.csv", index=False)
 
 tail_off_pairs = tailoff_df[["Player", "dead_years"]].explode("dead_years")
 tail_off_pairs = tail_off_pairs.rename(columns={"dead_years": "Year"}).drop_duplicates()
 tailoff_dropped = master.merge(tail_off_pairs, on=["Player", "Year"], how="inner")
-tailoff_dropped.to_excel("RB_dropped_tailoff.xlsx", index=False)
+tailoff_dropped.to_csv("RB_dropped_tailoff.csv", index=False)
 
 print(f"Before insufficient seasons filter: "
       f"{master['Player'].nunique()} players and {len(master)} seasons.")
@@ -199,4 +192,4 @@ master = master[~drop_mask]
 print(f"After tailoff filter: "
       f"{master['Player'].nunique()} players and {len(master)} seasons.")
 
-master.to_excel(RB_path / "RB_MASTER.xlsx", index=False)
+master.to_csv(RB_path / "RB_MASTER.csv", index=False)
