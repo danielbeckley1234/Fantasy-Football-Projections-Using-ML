@@ -49,6 +49,7 @@ master = master.merge(injuries, on=['Player', 'Year'], how='outer', suffixes=(''
 master['TM'] = master['TM'].fillna(master['TM_inj'])
 master = master.drop(columns='TM_inj')
 master['significant_injury'] = master['significant_injury'].fillna(0)
+master.loc[(master['Player'] == 'Damien Harris') & (master['Year'] == 2019), 'significant_injury'] = 1 # missed in original injuries
 
 # merge with data pulled from nflreadpy
 master['norm_name'] = master['Player'].apply(normalize_player)
@@ -171,6 +172,20 @@ def vol_check(
 
     return tailoff_df, insuff_df
 
+
+# fits tailoff but missed
+manual_drops = {
+    "Marlon Mack": {2020, 2021}
+}
+drop_pairs = pd.DataFrame(
+    [(player, year) for player, years in manual_drops.items() for year in years],
+    columns=["Player", "Year"]
+)
+drop_mask = master.set_index(["Player", "Year"]).index.isin(
+    drop_pairs.set_index(["Player", "Year"]).index
+)
+
+master = master[~drop_mask]
 tailoff_df, insuff_df = vol_check(master, manual_keep={"Braelon Allen"})
 insuff_dropped = master[master["Player"].isin(insuff_df["Player"])]
 insuff_dropped.to_csv("RB_dropped_insuff.csv", index=False)
