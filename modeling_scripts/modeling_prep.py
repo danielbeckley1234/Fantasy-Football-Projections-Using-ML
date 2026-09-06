@@ -26,17 +26,18 @@ def build_features(raw: pd.DataFrame) ->pd.DataFrame:
         df[f'{col}/G_lag2'] = g[f'{col}/G'].shift(2)
         df[f'{col}/G_lag3'] = g[f'{col}/G'].shift(3)
 
-    for col in targets:
-        l1, l2, l3 = df[f'{col}/G_lag1'], df[f'{col}/G_lag2'], df[f'{col}/G_lag3']
-        w1, w2, w3, = 0.5, 0.3, 0.2
-        weights = np.where(l1.notna(), w1, 0) + np.where(l2.notna(), w2, 0) + np.where(l3.notna(), w3, 0)
-        weighted_sum = l1.fillna(0) * w1 + l2.fillna(0) * w2 + l3.fillna(0) * w3
-        with np.errstate(invalid='ignore', divide='ignore'):
-            df[f'{col}/G_weighted'] = np.where(weights > 0, weighted_sum / weights, np.nan)
+    # will first let model develop its own weighted averages
+    # for col in targets:
+    #     l1, l2, l3 = df[f'{col}/G_lag1'], df[f'{col}/G_lag2'], df[f'{col}/G_lag3']
+    #     w1, w2, w3, = 0.5, 0.3, 0.2
+    #     weights = np.where(l1.notna(), w1, 0) + np.where(l2.notna(), w2, 0) + np.where(l3.notna(), w3, 0)
+    #     weighted_sum = l1.fillna(0) * w1 + l2.fillna(0) * w2 + l3.fillna(0) * w3
+    #     with np.errstate(invalid='ignore', divide='ignore'):
+    #         df[f'{col}/G_wavg'] = np.where(weights > 0, weighted_sum / weights, np.nan)
 
-    # workload volatility: std of att/g and tgt/g 
+    # workload volatility: std of att/g and tgt/g over last 3 seasons
     for col in ['ATT', 'TGT']:
-        df[f'{col}/G_std'] = g[f'{col}/G'].apply(lambda s: s.shift(1).rolling(3, min_periods=2).std())
+        df[f'{col}/G_std3'] = g[f'{col}/G'].apply(lambda s: s.shift(1).rolling(3, min_periods=2).std())
 
     # lag other features
     role_share = ['Rush%', 'Tgt%', 'Snaps/G']
@@ -126,3 +127,40 @@ def build_features(raw: pd.DataFrame) ->pd.DataFrame:
         df[f'target_{col}'] = df[col].shift(-1)
 
     return df
+
+
+## mapping target features
+# for all target stats
+cross_features = ['Snaps/G', 'Snaps/G_lag1', 'significant_injury_lag1', 'draft_round_filled', 'draft_pick_filled',
+    'age', 'age_sq', 'years', 'inflated_apy', 'inflated_guaranteed', 'pct_gtd_sign', 'years_exp', 
+    'years_since_full', 'team_change', 'games_missed_rate']
+
+# for att/rusyds
+rush_base_features = ['ATT/G', 'ATT/G_lag1', 'ATT/G_lag2', 'ATT/G_lag3', 'ATT/G_std3',
+    'RusYDS/G', 'RusYDS/G_lag1', 'RusYDS/G_lag2', 'RusYDS/G_lag3', 'RusYDS/G_std3',
+    'RusY/A', 'RusY/A_lag1', 'TmRBWR', 'RYOE/ATT', 'RYOE/ATT_lag1',
+    'RYOE%', 'RYOE%_lag1', 'Rush%', 'Rush%_lag1', 'pct_peak_att']
+
+# for all receiving statistics
+rec_base_features = ['TGT/G', 'TGT/G_lag1', 'TGT/G_lag2', 'TGT/G_lag3', 'TGT/G_std3',
+    'REC/G', 'REC/G_lag1', 'REC/G_lag2', 'REC/G_lag3', 'REC/G_std3',
+    'RecYDS/G', 'RecYDS/G_lag1', 'RecYDS/G_lag2', 'RecYDS/G_lag3', 'RecYDS/G_std3',
+    'Routes/G', 'Routes/G_lag1', 'Open', 'Catch', 'YAC', 'Overall', 'Tgt%', 
+    'Tgt%_lag1', 'pct_peak_tgt', 'Y/RR', 'Y/RR_lag1']
+
+target_feature_map = {
+    'ATT': cross_features + rush_base_features,
+    'RusYDS': cross_features + rush_base_features,
+    'RusTD': ['RusTD/G', 'RusTD/G_lag1', 'RusTD/G_lag2', 'RusTD/G_lag3', 
+        'In5ATT/G', 'In5ATT/G_lag1', 'In5ATT/G_lag2', 'In5Rush%', 'Rush%'
+        'RusTD%', 'RusTD%_lag1', 'xRusTD%', 'xRusTD%_lag1', 'pct_peak_att'] + cross_features + rush_base_features,
+    'TGT': cross_features + rec_base_features,
+    'REC': cross_features + rec_base_features,
+    'RecYDS': cross_features + rec_base_features,
+    'RecTD': ['RecTD/G', 'RecTD/G_lag1', 'RecTD/G_lag2', 'RecTD/G_lag3',
+        'RecTD%', 'RecTD%_lag1', 'xRecTD%', 'xRecTD%_lag1', 
+        'In5REC/G', 'In5REC/G_lag1', 'In5REC/G_lag2', 
+        'In5TG/G', 'In5TG/G_lag1', 'In5TG/G_lag2'] + cross_features + rec_base_features
+}
+
+target_cols = [f'target_{c}/G' for c in targets]
