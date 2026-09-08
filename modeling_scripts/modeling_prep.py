@@ -5,6 +5,7 @@ import numpy as np
 targets = ['ATT', 'RusYDS', 'RusTD', 'TGT', 'REC', 'RecYDS', 'RecTD']
 full_season_thresh = 14
 
+
 def build_features(raw: pd.DataFrame) ->pd.DataFrame:
     df = raw.copy()
     df = df.sort_values(['gsis_id', 'Year']).reset_index(drop=True)
@@ -25,15 +26,6 @@ def build_features(raw: pd.DataFrame) ->pd.DataFrame:
         df[f'{col}/G_lag1'] = g[f'{col}/G'].shift(1)
         df[f'{col}/G_lag2'] = g[f'{col}/G'].shift(2)
         df[f'{col}/G_lag3'] = g[f'{col}/G'].shift(3)
-
-    # will first let model develop its own weighted averages
-    # for col in targets:
-    #     l1, l2, l3 = df[f'{col}/G_lag1'], df[f'{col}/G_lag2'], df[f'{col}/G_lag3']
-    #     w1, w2, w3, = 0.5, 0.3, 0.2
-    #     weights = np.where(l1.notna(), w1, 0) + np.where(l2.notna(), w2, 0) + np.where(l3.notna(), w3, 0)
-    #     weighted_sum = l1.fillna(0) * w1 + l2.fillna(0) * w2 + l3.fillna(0) * w3
-    #     with np.errstate(invalid='ignore', divide='ignore'):
-    #         df[f'{col}/G_wavg'] = np.where(weights > 0, weighted_sum / weights, np.nan)
 
     # workload volatility: std of att/g and tgt/g over last 3 seasons
     for col in ['ATT', 'TGT']:
@@ -158,7 +150,7 @@ target_feature_map = {
     'ATT': cross_features + rush_base_features,
     'RusYDS': cross_features + rush_base_features,
     'RusTD': ['RusTD/G', 'RusTD/G_lag1', 'RusTD/G_lag2', 'RusTD/G_lag3', 
-        'In5ATT/G', 'In5ATT/G_lag1', 'In5ATT/G_lag2', 'In5Rush%', 'In5Rush%_lag1', 'In5Rush%_lag2'
+        'In5ATT/G', 'In5ATT/G_lag1', 'In5ATT/G_lag2', 'In5Rush%', 'In5Rush%_lag1', 'In5Rush%_lag2',
         'RusTD%', 'RusTD%_lag1', 'xRusTD%', 'xRusTD%_lag1'] + cross_features + rush_base_features,
     'TGT': cross_features + rec_base_features,
     'REC': cross_features + rec_base_features,

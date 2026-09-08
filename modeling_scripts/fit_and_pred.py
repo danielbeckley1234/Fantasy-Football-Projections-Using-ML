@@ -71,7 +71,7 @@ def pred_mixed(fit, X_imp, groups):
     return base + adj
 
 
-## apply/compare models, refit on data
+## apply/compare model errors (mae, rmse), refit on data
 def eval_pred(df: pd.DataFrame, holdout_year: int=2024, predict_from_year: int=2025):
     transitions = df[df[target_cols].notna().any(axis=1)].copy()
     comparison_rows = []
@@ -167,7 +167,15 @@ def eval_pred(df: pd.DataFrame, holdout_year: int=2024, predict_from_year: int=2
     best_df = pd.DataFrame([{'Stat': k, 'Best_Model': v} for k, v in best_model_per_target.items()])
 
     pred_out = pred_rows[['Player', 'TM', 'age', 'years_exp']].copy()
+    pred_out['years_exp'] = pred_out['years_exp'] + 1
     for stat in targets:
-        pred_out[f'{stat}/G_2026'] = pred_out['Player'].map(preds[stat])
-        pred_out[f'{stat}_2026_full'] = pred_out[f'{stat}/G_2026'] * 17
+        pred_out[f'{stat}'] = round(pred_out['Player'].map(preds[stat]) * 17, 0)
+
+    def to_fantasy_points(rusyds, rustd, rec, recyds, rectd):
+        return 0.1 * (rusyds + recyds) + 6 * (rustd + rectd) + rec
+
+    pred_out['FPTs'] = to_fantasy_points(
+        pred_out['RusYDS'], pred_out['RusTD'], pred_out['REC'], pred_out['RecYDS'], pred_out['RecTD'])
+    pred_out['FPT/G'] = round(pred_out['FPTs'] / 17, 1)
+
     return comparison_df, best_df, pred_out
