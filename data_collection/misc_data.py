@@ -1,3 +1,4 @@
+# misc_data.py: assembles the miscellaneous data pulled from the nflreadpy library, including contract and draft data. 
 import nflreadpy as nfl
 import pandas as pd
 
@@ -8,7 +9,6 @@ pos_keep = ['QB', 'RB', 'FB', 'WR', 'TE', 'K']
 player_keep = ['display_name', 'position', 'gsis_id', 'birth_date', 'draft_round', 'draft_pick', 'rookie_season', 'last_season']
 inc_years = list(range(2018, 2027))
 
-
 # load data
 players = nfl.load_players().to_pandas()
 print(f"Players shape: {players.shape}")
@@ -18,7 +18,6 @@ contracts = nfl.load_contracts().to_pandas()
 print(f"Contracts shape: {contracts.shape}")
 print(contracts.head())
 
-    
 # initial filtering and explode seasons for each year of interest
 players = players[player_keep]
 players = players.rename(columns={'display_name': 'Player'})
@@ -45,7 +44,6 @@ contracts = contracts.explode("Year").reset_index(drop=True)
 contracts["Year"] = contracts["Year"].astype(int)
 contracts = (contracts.sort_values("year_signed", ascending=False)
              .drop_duplicates(subset=["gsis_id", "Year"], keep="first"))
-
 
 # merge players with contracts, expand across years of contract
 misc = players.merge(contracts, on=['gsis_id', 'Year'], how='left')
