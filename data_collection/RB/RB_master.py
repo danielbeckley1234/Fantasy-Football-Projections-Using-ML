@@ -95,6 +95,6 @@ tailoff_df, insuff_df = vol_check(
 )
 master, insuff_dropped, tailoff_dropped = apply_vol_check(master, tailoff_df, insuff_df)
 
-insuff_dropped.to_csv(RB_path / "RB_dropped_insuff_test.csv", index=False)
-tailoff_dropped.to_csv(RB_path / "RB_dropped_tailoff_test.csv", index=False)
-master.to_csv(RB_path / "RB_MASTER_TEST.csv", index=False)
+insuff_dropped.to_csv(RB_path / "RB_dropped_insuff.csv", index=False)
+tailoff_dropped.to_csv(RB_path / "RB_dropped_tailoff.csv", index=False)
+master.to_csv(RB_path / "RB_MASTER.csv", index=False)
