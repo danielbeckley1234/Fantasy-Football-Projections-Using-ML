@@ -91,7 +91,7 @@ master = master[~drop_mask]
 
 # filter insufficient volume players and drop tailoff seasons
 tailoff_df, insuff_df = vol_check(
-    master, vol_cols=["ATT", "REC"], prod_thresholds=[25, 15], manual_keep={"Braelon Allen"}
+    master, vol_cols=["ATT", "REC"], prod_thresholds=[25, 15], manual_keep={"Braelon Allen", "Ke'Shawn Vaughn"}
 )
 master, insuff_dropped, tailoff_dropped = apply_vol_check(master, tailoff_df, insuff_df)
 
