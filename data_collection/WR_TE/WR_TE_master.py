@@ -49,7 +49,8 @@ WR_misc = misc[misc['position'] == 'WR']
 TE_misc = misc[misc['position'] == 'TE']
 
 # renames
-renames = {'Deonte Harris': 'Deonte Harty', 'Josh Palmer': 'Joshua Palmer', 'Scott Miller': 'Scotty Miller', 'Will Fuller': 'William Fuller'}
+renames = {'Deonte Harris': 'Deonte Harty', 'Josh Palmer': 'Joshua Palmer', 'Scott Miller': 'Scotty Miller', 
+           'William Fuller V': 'Will Fuller', 'Marquise Brown': 'Hollywood Brown', 'Robbie Anderson': 'Robbie Chosen'}
 
 for df in [WR_base, TE_base, WR_td, TE_td, WR_redzone, TE_redzone, WR_injuries, TE_injuries, WR_shares, TE_shares,
         WR_espn, TE_espn, WR_nextgen, TE_nextgen, WR_misc, TE_misc]:
@@ -58,36 +59,45 @@ for df in [WR_base, TE_base, WR_td, TE_td, WR_redzone, TE_redzone, WR_injuries, 
     df['Player'] = df['Player'].apply(normalize_player)
     if 'TM' in df.columns:
         df['TM'] = df['TM'].str.strip()
+        df['TM'] = df['TM'].replace({'OAK': 'LV'})
 
 merge_keys = ['Player', 'TM', 'Year']
 backup_merge = ['Player', 'Year']
 WR_master = WR_base.merge(WR_td, on=merge_keys, how="outer")
 WR_master = WR_master.merge(WR_redzone, on=backup_merge, how="outer")
 WR_master = WR_master.merge(WR_injuries, on=backup_merge, how="outer")
+WR_master['significant_injury'] = WR_master['significant_injury'].fillna(0)
 WR_master = WR_master.merge(WR_shares, on=merge_keys, how="outer")
 WR_master = WR_master.merge(WR_espn, on=merge_keys, how="outer")
 WR_master = WR_master.merge(WR_nextgen, on=merge_keys, how="outer")
-WR_master = WR_master.merge(WR_misc, on=backup_merge, how="outer")
+WR_master = WR_master.merge(WR_misc, on=backup_merge, how="left")
 
 TE_master = TE_base.merge(TE_td, on=merge_keys, how="outer")
 TE_master = TE_master.merge(TE_redzone, on=backup_merge, how="outer")
 TE_master = TE_master.merge(TE_injuries, on=backup_merge, how="outer")
+TE_master['significant_injury'] = TE_master['significant_injury'].fillna(0)
 TE_master = TE_master.merge(TE_shares, on=merge_keys, how="outer")
 TE_master = TE_master.merge(TE_espn, on=merge_keys, how="outer")
 TE_master = TE_master.merge(TE_nextgen, on=merge_keys, how="outer")
-TE_master = TE_master.merge(TE_misc, on=backup_merge, how="outer")
+TE_master = TE_master.merge(TE_misc, on=backup_merge, how="left")
+
+WR_master['TGT/G'] = round(WR_master['TGT'] / WR_master['G'], 3)
+TE_master['TGT/G'] = round(TE_master['TGT'] / TE_master['G'], 3)
 
 
 ## data cleaning
-WR_tailoff_df, WR_insuff_df = vol_check(WR_master, vol_cols=["TGT"], prod_thresholds=[40])
+manual_keeps = {"Isaac TeSlaa", "Jack Bech", "Ryan Flournoy", "Xavier Hutchinson"}
+WR_tailoff_df, WR_insuff_df = vol_check(WR_master, vol_cols=["TGT/G"], prod_thresholds=[2], manual_keep=manual_keeps)
 WR_master, WR_insuff_dropped, WR_tailoff_dropped = apply_vol_check(WR_master, WR_tailoff_df, WR_insuff_df)
 WR_insuff_dropped.to_csv(base_path / "WR_dropped_insuff.csv", index=False)
 WR_tailoff_dropped.to_csv(base_path / "WR_dropped_tailoff.csv", index=False)
 
-TE_tailoff_df, TE_insuff_df = vol_check(TE_master, vol_cols=["TGT"], prod_thresholds=[30])
+TE_tailoff_df, TE_insuff_df = vol_check(TE_master, vol_cols=["TGT/G"], prod_thresholds=[1.5])
 TE_master, TE_insuff_dropped, TE_tailoff_dropped = apply_vol_check(TE_master, TE_tailoff_df, TE_insuff_df)
 TE_insuff_dropped.to_csv(base_path / "TE_dropped_insuff.csv", index=False)
 TE_tailoff_dropped.to_csv(base_path / "TE_dropped_tailoff.csv", index=False)
 
+WR_master = WR_master.sort_values(['Player', 'Year']).reset_index(drop=True)
+TE_master = TE_master.sort_values(['Player', 'Year']).reset_index(drop=True)
 WR_master.to_csv(base_path / "WR_MASTER.csv", index=False)
 TE_master.to_csv(base_path / "TE_MASTER.csv", index=False)
