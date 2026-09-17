@@ -16,26 +16,39 @@ def vol_check(
         prod_thresholds: list,
         player_col: str = "Player",
         year_col: str = "Year",
+        games_col: str = "G",
         last_season_col: str = "last_season",
         min_prod: int = 2,
         curr_year_exempt: bool = True,
         manual_keep: set = frozenset(),
-) -> tuple[pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 
     vol_cols = list(vol_cols)
     prod_thresholds = list(prod_thresholds)
     max_year = df[year_col].max()
     proj_year = max_year + 1
 
-    # mark productive and dead seasons
+    # mark productive/dead seasons and track gaps between
     prod_ind = pd.Series(False, index=df.index)
     for col, threshold in zip(vol_cols, prod_thresholds):
-        prod_ind |= df[col] >= threshold
+        prod_ind |= (df[col] >= threshold) & (df[games_col] > 3)
     dead_ind = ~prod_ind
 
     temp = df[[player_col, year_col, last_season_col]].copy()
     temp["_prod"] = prod_ind
     temp["_dead"] = dead_ind
+    temp = temp.sort_values(year_col)
+
+    def gaps(group):
+        counts, n = [], 0
+        for is_prod in group["_prod"]:
+            counts.append(n)
+            n = 0 if is_prod else n + 1
+        return pd.Series(counts, index=group.index)
+
+    temp['years_since_prod'] = temp.groupby(player_col, group_keys=False).apply(gaps)
+    df = df.copy()
+    df['years_since_prod'] = temp['years_since_prod']
 
     insuff_prod = []
     tailoff = []
@@ -100,7 +113,7 @@ def vol_check(
     if not insuff_df.empty:
         insuff_df = insuff_df.sort_values(by="prod_seasons").reset_index(drop=True)
 
-    return tailoff_df, insuff_df
+    return tailoff_df, insuff_df, df
 
 def apply_vol_check(
     master: pd.DataFrame,
