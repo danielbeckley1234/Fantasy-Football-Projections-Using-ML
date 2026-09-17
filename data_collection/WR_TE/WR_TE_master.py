@@ -50,7 +50,8 @@ TE_misc = misc[misc['position'] == 'TE']
 
 # renames
 renames = {'Deonte Harris': 'Deonte Harty', 'Josh Palmer': 'Joshua Palmer', 'Scott Miller': 'Scotty Miller', 
-           'William Fuller V': 'Will Fuller', 'Marquise Brown': 'Hollywood Brown', 'Robbie Anderson': 'Robbie Chosen'}
+           'William Fuller V': 'Will Fuller', 'Marquise Brown': 'Hollywood Brown', 'Robbie Anderson': 'Robbie Chosen',
+           'Gabriel Davis': 'Gabe Davis'}
 
 for df in [WR_base, TE_base, WR_td, TE_td, WR_redzone, TE_redzone, WR_injuries, TE_injuries, WR_shares, TE_shares,
         WR_espn, TE_espn, WR_nextgen, TE_nextgen, WR_misc, TE_misc]:
@@ -86,14 +87,24 @@ TE_master['TGT/G'] = round(TE_master['TGT'] / TE_master['G'], 3)
 
 
 ## data cleaning
-manual_keeps = {"Isaac TeSlaa", "Jack Bech", "Ryan Flournoy", "Xavier Hutchinson"}
-WR_tailoff_df, WR_insuff_df = vol_check(WR_master, vol_cols=["TGT/G"], prod_thresholds=[2], manual_keep=manual_keeps)
-WR_master, WR_insuff_dropped, WR_tailoff_dropped = apply_vol_check(WR_master, WR_tailoff_df, WR_insuff_df)
+WR_manual_drops = {
+'Antonio Callaway': {2018, 2019}, 'DJ Chark': {2024}
+}
+drop_pairs = pd.DataFrame(
+    [(player, year) for player, years in WR_manual_drops.items() for year in years], columns=["Player", "Year"]
+)
+drop_mask = WR_master.set_index(["Player", "Year"]).index.isin(drop_pairs.set_index(["Player", "Year"]).index)
+WR_master = WR_master[~drop_mask]
+manual_keeps = {'Cedric Wilson', 'Tim Patrick'}
+
+WR_tailoff_df, WR_insuff_df, WR_df = vol_check(WR_master, vol_cols=["TGT/G", "TGT"], prod_thresholds=[2.5, 28], manual_keep=manual_keeps)
+WR_master, WR_insuff_dropped, WR_tailoff_dropped = apply_vol_check(WR_df, WR_tailoff_df, WR_insuff_df)
 WR_insuff_dropped.to_csv(base_path / "WR_dropped_insuff.csv", index=False)
 WR_tailoff_dropped.to_csv(base_path / "WR_dropped_tailoff.csv", index=False)
 
-TE_tailoff_df, TE_insuff_df = vol_check(TE_master, vol_cols=["TGT/G"], prod_thresholds=[1.5])
-TE_master, TE_insuff_dropped, TE_tailoff_dropped = apply_vol_check(TE_master, TE_tailoff_df, TE_insuff_df)
+
+TE_tailoff_df, TE_insuff_df, TE_df = vol_check(TE_master, vol_cols=["TGT/G", "TGT"], prod_thresholds=[2.5, 20])
+TE_master, TE_insuff_dropped, TE_tailoff_dropped = apply_vol_check(TE_df, TE_tailoff_df, TE_insuff_df)
 TE_insuff_dropped.to_csv(base_path / "TE_dropped_insuff.csv", index=False)
 TE_tailoff_dropped.to_csv(base_path / "TE_dropped_tailoff.csv", index=False)
 
