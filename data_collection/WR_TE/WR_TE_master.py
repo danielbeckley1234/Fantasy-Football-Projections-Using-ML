@@ -43,7 +43,6 @@ WR_adv = WR_adv.drop(columns={'Player (TM)'})
 TE_adv = pd.read_excel(base_path / 'TE_adv.xlsx')
 TE_adv = TE_adv.drop(columns={'Player (TM)'})
 
-
 misc = pd.read_csv(data_path / "misc_data.csv")
 WR_misc = misc[misc['position'] == 'WR']
 TE_misc = misc[misc['position'] == 'TE']
@@ -84,7 +83,8 @@ TE_master = TE_master.merge(TE_misc, on=backup_merge, how="left")
 
 WR_master['TGT/G'] = round(WR_master['TGT'] / WR_master['G'], 3)
 TE_master['TGT/G'] = round(TE_master['TGT'] / TE_master['G'], 3)
-
+WR_master['touches'] = WR_master['ATT'] + WR_master['REC']
+TE_master['touches'] = TE_master['ATT'] + TE_master['REC']
 
 ## data cleaning
 WR_manual_drops = {

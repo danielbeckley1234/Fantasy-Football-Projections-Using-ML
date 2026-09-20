@@ -41,14 +41,14 @@ for df in [rush, rec, shares, injuries, tds, misc]:
 
 merge_keys = ['Player', 'Year', 'TM']
 backup_merge = ['Player', 'Year']
-master = rush.merge(rec, on=merge_keys, how='outer')
-master = master.merge(shares, on=merge_keys, how='outer')
-master = master.merge(tds, on=merge_keys, how='outer')
-master = master.merge(injuries, on=backup_merge, how='outer')
-master['significant_injury'] = master['significant_injury'].fillna(0)
-master.loc[(master['Player'] == 'Damien Harris') & (master['Year'] == 2019), 'significant_injury'] = 1 # missed in original injuries
-master = master.merge(misc, on=backup_merge, how='left')
-master = master[master['position'] == 'RB']
+RB_master = rush.merge(rec, on=merge_keys, how='outer')
+RB_master = RB_master.merge(shares, on=merge_keys, how='outer')
+RB_master = RB_master.merge(tds, on=merge_keys, how='outer')
+RB_master = RB_master.merge(injuries, on=backup_merge, how='outer')
+RB_master['significant_injury'] = RB_master['significant_injury'].fillna(0)
+RB_master.loc[(RB_master['Player'] == 'Damien Harris') & (RB_master['Year'] == 2019), 'significant_injury'] = 1 # missed in original injuries
+RB_master = RB_master.merge(misc, on=backup_merge, how='left')
+RB_master = RB_master[RB_master['position'] == 'RB'] # some fullbacks made it into the FantasyPros data
 
 # audric estime was the only RB of interest who did not appear in the misc dataset
 estime_manual = {
@@ -63,11 +63,11 @@ estime_manual = {
 
 estime_birth = pd.Timestamp(estime_manual['birth_date'])
 for year in [2024, 2025]:
-    rep = (master['Player'] == 'Audric Estime') & (master['Year'] == year)
+    rep = (RB_master['Player'] == 'Audric Estime') & (RB_master['Year'] == year)
     for col, val in estime_manual.items():
-        master.loc[rep, col] = val
+        RB_master.loc[rep, col] = val
     season_ref = pd.Timestamp(f'{year}-09-01')
-    master.loc[rep, 'age'] = round((season_ref - estime_birth).days / 365.25, 2)
+    RB_master.loc[rep, 'age'] = round((season_ref - estime_birth).days / 365.25, 2)
 
 
 ## data cleaning
@@ -82,12 +82,13 @@ for year in [2024, 2025]:
 #     drop_pairs.set_index(["Player", "Year"]).index
 # )
 # master = master[~drop_mask]
-master = master[master['gsis_id'] != '00-0035957'] # duplicate rod smith
-master['ATT/G'] = round(master['ATT'] / master['G'], 3)
-master['TGT/G'] = round(master['TGT'] / master['G'], 3)
+RB_master = RB_master[RB_master['gsis_id'] != '00-0035957'] # duplicate rod smith
+RB_master['ATT/G'] = round(RB_master['ATT'] / RB_master['G'], 3)
+RB_master['TGT/G'] = round(RB_master['TGT'] / RB_master['G'], 3)
+RB_master['touches'] = RB_master['ATT'] + RB_master['REC']
 
 tailoff_df, insuff_df, RB_df = vol_check(
-    master, vol_cols=["ATT/G", "TGT/G", "ATT", "TGT"], prod_thresholds=[6, 3, 25, 15], manual_keep={"Braelon Allen"}
+    RB_master, vol_cols=["ATT/G", "TGT/G", "ATT", "TGT"], prod_thresholds=[6, 3, 25, 15], manual_keep={"Braelon Allen"}
 )
 RB_master, insuff_dropped, tailoff_dropped = apply_vol_check(RB_df, tailoff_df, insuff_df)
 
