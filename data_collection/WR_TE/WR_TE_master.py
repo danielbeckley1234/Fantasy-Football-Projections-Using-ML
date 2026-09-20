@@ -10,9 +10,10 @@ from utils import vol_check, apply_vol_check, normalize_player
 ## prep and merge data
 # read data and drop/fix necessary columns
 WR_base = pd.read_excel(base_path / "WR_base.xlsx")
-WR_base = WR_base.drop(columns=['Player (TM)'])
+WR_base = WR_base.drop(columns=['Player (TM)', 'TGT %']) # tgt% redundant with other dataset
 TE_base = pd.read_excel(base_path / "TE_base.xlsx")
-TE_base = TE_base.drop(columns=['Player (TM)'])
+TE_base = TE_base.drop(columns=['Player (TM)', 'TGT %'])
+
 
 WR_td = pd.read_excel(base_path / "WR_TD.xlsx")
 WR_td = WR_td.drop(columns=['Player (TM)'])
@@ -28,6 +29,7 @@ WR_injuries = pd.read_excel(base_path / "WR_injuries.xlsx")
 TE_injuries = pd.read_excel(base_path / "TE_injuries.xlsx")
 
 WR_shares = pd.read_excel(base_path / "WR_shares.xlsx")
+WR_shares = WR_shares.rename(columns={'SNAPS/GM': 'Snaps/G'})
 TE_shares = pd.read_excel(base_path / "TE_shares.xlsx")
 
 espn = pd.read_excel(base_path / "WR_TE_ESPN.xlsx")
