@@ -40,7 +40,7 @@ def build_features(
     df['draft_pick_filled'] = df['draft_pick'].fillna(300)
     df['age_sq'] = df['age'] ** 2
 
-# stage/trajectory/health in career evaluator
+# stage/trajectory in career evaluator
     def pct_of_peak_role(sub: pd.DataFrame) -> pd.DataFrame:
         sub = sub.sort_values('Year')
         prior_vol, pct_peak_vol = [], []
@@ -67,6 +67,28 @@ def build_features(
         peak_df = peak_df.reset_index(level=0, drop=True)
     df[['pct_peak_vol']] = peak_df
     g = df.groupby('gsis_id', group_keys=False)
+
+    # rust evaluator
+    def years_since_full(sub: pd.DataFrame) -> pd.Series:
+        sub = sub.sort_values('Year')
+        last_full_year = np.nan
+        out = []
+        for _, row in sub.iterrows():
+            if pd.notna(last_full_year):
+                out.append(row['Year'] - last_full_year)
+            else:
+                out.append(np.nan)
+            curr_g = row['G'] if pd.notna(row['G']) else 0
+            if curr_g >= 13:
+                last_full_year = row['Year']
+        return pd.Series(out, index=sub.index)
+ 
+    df['years_since_full'] = g.apply(years_since_full).reset_index(level=0, drop=True)
+    data_start_year = df['Year'].min()
+    never_full_mask = df['years_since_full'].isna()
+    career_in_window = df['rookie_season'] >= data_start_year
+    apply_sentinel_mask = never_full_mask & career_in_window
+    df.loc[apply_sentinel_mask, 'years_since_full'] = df.loc[apply_sentinel_mask, 'years_exp'] + 2
 
     # positional volume stds
     if pos == 'RB':
