@@ -31,7 +31,7 @@ WR_TE_target_feature_map = {
         'RZTGT/G_lag2', 'RZTGT%', 'RZTGT%_lag1'] + WRTE_cross_features + WRTE_rec_base_features,
     'ATT': WRTE_cross_features + WRTE_rush_base_features,
     'RusYDS': WRTE_cross_features + WRTE_rush_base_features,
-    'RusTD': ['RusTD/G', 'RusTD/G_lag1', 'RZATT/G',
+    'RusTD': ['RusTD/G', 'RusTD/G_lag1', 'RZATT/G', 'RZATT/G_lag1'
         'RuTD%', 'RuTD%_lag1', 'xRuTD%', 'xRuTD%_lag1'] + WRTE_cross_features + WRTE_rush_base_features,
 }
 
