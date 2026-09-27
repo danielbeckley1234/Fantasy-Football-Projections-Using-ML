@@ -9,29 +9,33 @@ from utils import vol_check, apply_vol_check, normalize_player
 
 ## prep and merge data
 # read data and drop/fix repetitive columns
-rush = pd.read_excel(RB_path / "RB_rush.xlsx")
-rush = rush.drop(columns=['Player (TM)'])
+RB_rush = pd.read_excel(RB_path / "RB_rush.xlsx")
+RB_rush = RB_rush.drop(columns=['Player (TM)'])
 
-rec = pd.read_excel(RB_path / "RB_rec.xlsx")
-rec = rec.drop(columns=['Player (TM)', 'G', 'FL']) # decided not to project FL
+RB_rec = pd.read_excel(RB_path / "RB_rec.xlsx")
+RB_rec = RB_rec.drop(columns=['Player (TM)', 'G', 'FL']) # decided not to project FL
 
-shares = pd.read_excel(RB_path / "RB_shares.xlsx")
-shares = shares.rename(columns={'Tm':'TM'})
-shares = shares.drop(columns=['G', 'Snap%']) # faulty data from FantasyPros for Snap% (exceeds 100% for several player seasons)
+RB_shares = pd.read_excel(RB_path / "RB_shares.xlsx")
+RB_shares = RB_shares.rename(columns={'Tm':'TM'})
+RB_shares = RB_shares.drop(columns=['G', 'Snap%']) # faulty data from FantasyPros for Snap% (exceeds 100% for several player seasons)
 
-injuries = pd.read_excel(RB_path / "RB_injuries.xlsx")
-injuries = injuries.drop(columns=['TM']) # inconsistencies with misc
-tds = pd.read_excel(RB_path / "RB_advTD.xlsx")
-tds = tds.drop(columns=['Player (TM)'])
+RB_injuries = pd.read_excel(RB_path / "RB_injuries.xlsx")
+RB_injuries = RB_injuries.drop(columns=['TM']) # inconsistencies with misc
+RB_tds = pd.read_excel(RB_path / "RB_advTD.xlsx")
+RB_tds = RB_tds.drop(columns=['Player (TM)'])
 
 misc = pd.read_csv(data_path / "misc_data.csv")
-misc = misc[misc['position'] == 'RB']
+RB_misc = misc[misc['position'] == 'RB']
+
+starters = pd.read_csv(data_path / "starters.csv")
+RB_starters = set(starters.loc[starters['Pos'] == 'RB', 'gsis_id'].dropna())
+
 
 # rename signficantly varied names of players
 renames = {'Nyheim Miller-Hines': 'Nyheim Hines', 'Nathan Carter': 'Nate Carter', 'Bo Scarborough': 'Bo Scarbrough',
            'Rodney Smith': 'Rod Smith'}
 
-for df in [rush, rec, shares, injuries, tds, misc]:
+for df in [RB_rush, RB_rec, RB_shares, RB_injuries, RB_tds, RB_misc]:
     df['Player'] = df['Player'].str.strip()
     df['Player'] = df['Player'].replace(renames)
     df['Player'] = df['Player'].apply(normalize_player)
@@ -41,13 +45,13 @@ for df in [rush, rec, shares, injuries, tds, misc]:
 
 merge_keys = ['Player', 'Year', 'TM']
 backup_merge = ['Player', 'Year']
-RB_master = rush.merge(rec, on=merge_keys, how='outer')
-RB_master = RB_master.merge(shares, on=merge_keys, how='outer')
-RB_master = RB_master.merge(tds, on=merge_keys, how='outer')
-RB_master = RB_master.merge(injuries, on=backup_merge, how='outer')
+RB_master = RB_rush.merge(RB_rec, on=merge_keys, how='outer')
+RB_master = RB_master.merge(RB_shares, on=merge_keys, how='outer')
+RB_master = RB_master.merge(RB_tds, on=merge_keys, how='outer')
+RB_master = RB_master.merge(RB_injuries, on=backup_merge, how='outer')
 RB_master['significant_injury'] = RB_master['significant_injury'].fillna(0)
 RB_master.loc[(RB_master['Player'] == 'Damien Harris') & (RB_master['Year'] == 2019), 'significant_injury'] = 1 # missed in original injuries
-RB_master = RB_master.merge(misc, on=backup_merge, how='left')
+RB_master = RB_master.merge(RB_misc, on=backup_merge, how='left')
 RB_master = RB_master[RB_master['position'] == 'RB'] # some fullbacks made it into the FantasyPros data
 
 # audric estime was the only RB of interest who did not appear in the misc dataset
@@ -69,27 +73,13 @@ for year in [2024, 2025]:
     season_ref = pd.Timestamp(f'{year}-09-01')
     RB_master.loc[rep, 'age'] = round((season_ref - estime_birth).days / 365.25, 2)
 
-
-## data cleaning
-# manual_drops = {
-
-# }
-# drop_pairs = pd.DataFrame(
-#     [(player, year) for player, years in manual_drops.items() for year in years],
-#     columns=["Player", "Year"]
-# )
-# drop_mask = master.set_index(["Player", "Year"]).index.isin(
-#     drop_pairs.set_index(["Player", "Year"]).index
-# )
-# master = master[~drop_mask]
 RB_master = RB_master[RB_master['gsis_id'] != '00-0035957'] # duplicate rod smith
 RB_master['ATT/G'] = round(RB_master['ATT'] / RB_master['G'], 3)
 RB_master['TGT/G'] = round(RB_master['TGT'] / RB_master['G'], 3)
 RB_master['touches'] = RB_master['ATT'] + RB_master['REC']
 
-tailoff_df, insuff_df, RB_df = vol_check(
-    RB_master, vol_cols=["ATT/G", "TGT/G", "ATT", "TGT"], prod_thresholds=[6, 3, 25, 15], manual_keep={"Braelon Allen"}
-)
+tailoff_df, insuff_df, RB_df = vol_check(RB_master, vol_cols=["ATT/G", "TGT/G", "ATT", "TGT"], prod_thresholds=[6, 3, 25, 15], 
+    manual_keep={"Braelon Allen"}, manual_keep_ids=RB_starters)
 RB_master, insuff_dropped, tailoff_dropped = apply_vol_check(RB_df, tailoff_df, insuff_df)
 
 insuff_dropped.to_csv(RB_path / "RB_dropped_insuff.csv", index=False)

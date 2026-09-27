@@ -14,7 +14,6 @@ WR_base = WR_base.drop(columns=['Player (TM)', 'TGT %']) # tgt% redundant with o
 TE_base = pd.read_excel(base_path / "TE_base.xlsx")
 TE_base = TE_base.drop(columns=['Player (TM)', 'TGT %'])
 
-
 WR_td = pd.read_excel(base_path / "WR_TD.xlsx")
 WR_td = WR_td.drop(columns=['Player (TM)'])
 TE_td = pd.read_excel(base_path / "TE_TD.xlsx")
@@ -30,13 +29,17 @@ TE_injuries = pd.read_excel(base_path / "TE_injuries.xlsx")
 
 WR_shares = pd.read_excel(base_path / "WR_shares.xlsx")
 WR_shares = WR_shares.rename(columns={'SNAPS/GM': 'Snaps/G'})
+WR_shares = WR_shares.drop(columns=['SNAP %'])
 TE_shares = pd.read_excel(base_path / "TE_shares.xlsx")
+TE_shares = TE_shares.rename(columns={'SNAPS/GM': 'Snaps/G'})
+TE_shares = TE_shares.drop(columns=['SNAP %'])
 
 espn = pd.read_excel(base_path / "WR_TE_ESPN.xlsx")
 WR_espn = espn[espn['Pos'] == 'WR']
 TE_espn = espn[espn['Pos'] == 'TE']
 
 nextgen = pd.read_excel(base_path / "WR_TE_nextgen.xlsx")
+nextgen = nextgen.drop(columns=['TM']) # different naming conventions, wont hurt to drop and use backup merge keys
 WR_nextgen = nextgen[nextgen['POS'] == 'WR']
 TE_nextgen = nextgen[nextgen['POS'] == 'TE']
 
@@ -48,6 +51,10 @@ TE_adv = TE_adv.drop(columns={'Player (TM)'})
 misc = pd.read_csv(data_path / "misc_data.csv")
 WR_misc = misc[misc['position'] == 'WR']
 TE_misc = misc[misc['position'] == 'TE']
+
+starters = pd.read_csv(data_path / "starters.csv")
+WR_starters = set(starters.loc[starters['Pos'] == 'WR', 'gsis_id'].dropna())
+TE_starters = set(starters.loc[starters['Pos'] == 'TE', 'gsis_id'].dropna())
 
 # renames
 renames = {'Deonte Harris': 'Deonte Harty', 'Josh Palmer': 'Joshua Palmer', 'Scott Miller': 'Scotty Miller', 
@@ -71,7 +78,7 @@ WR_master = WR_master.merge(WR_injuries, on=backup_merge, how="outer")
 WR_master['significant_injury'] = WR_master['significant_injury'].fillna(0)
 WR_master = WR_master.merge(WR_shares, on=merge_keys, how="outer")
 WR_master = WR_master.merge(WR_espn, on=merge_keys, how="outer")
-WR_master = WR_master.merge(WR_nextgen, on=merge_keys, how="outer")
+WR_master = WR_master.merge(WR_nextgen, on=backup_merge, how="outer")
 WR_master = WR_master.merge(WR_misc, on=backup_merge, how="left")
 
 TE_master = TE_base.merge(TE_td, on=merge_keys, how="outer")
@@ -80,7 +87,7 @@ TE_master = TE_master.merge(TE_injuries, on=backup_merge, how="outer")
 TE_master['significant_injury'] = TE_master['significant_injury'].fillna(0)
 TE_master = TE_master.merge(TE_shares, on=merge_keys, how="outer")
 TE_master = TE_master.merge(TE_espn, on=merge_keys, how="outer")
-TE_master = TE_master.merge(TE_nextgen, on=merge_keys, how="outer")
+TE_master = TE_master.merge(TE_nextgen, on=backup_merge, how="outer")
 TE_master = TE_master.merge(TE_misc, on=backup_merge, how="left")
 
 WR_master['TGT/G'] = round(WR_master['TGT'] / WR_master['G'], 3)
@@ -99,13 +106,15 @@ drop_mask = WR_master.set_index(["Player", "Year"]).index.isin(drop_pairs.set_in
 WR_master = WR_master[~drop_mask]
 manual_keeps = {'Cedric Wilson', 'Tim Patrick'}
 
-WR_tailoff_df, WR_insuff_df, WR_df = vol_check(WR_master, vol_cols=["TGT/G", "TGT"], prod_thresholds=[2.5, 28], manual_keep=manual_keeps)
+WR_tailoff_df, WR_insuff_df, WR_df = vol_check(WR_master, vol_cols=["TGT/G", "TGT"], prod_thresholds=[2.5, 28], 
+    manual_keep=manual_keeps, manual_keep_ids=WR_starters)
 WR_master, WR_insuff_dropped, WR_tailoff_dropped = apply_vol_check(WR_df, WR_tailoff_df, WR_insuff_df)
 WR_insuff_dropped.to_csv(base_path / "WR_dropped_insuff.csv", index=False)
 WR_tailoff_dropped.to_csv(base_path / "WR_dropped_tailoff.csv", index=False)
 
 
-TE_tailoff_df, TE_insuff_df, TE_df = vol_check(TE_master, vol_cols=["TGT/G", "TGT"], prod_thresholds=[2.5, 20])
+TE_tailoff_df, TE_insuff_df, TE_df = vol_check(TE_master, vol_cols=["TGT/G", "TGT"], prod_thresholds=[2.5, 20], 
+                                               manual_keep_ids=TE_starters)
 TE_master, TE_insuff_dropped, TE_tailoff_dropped = apply_vol_check(TE_df, TE_tailoff_df, TE_insuff_df)
 TE_insuff_dropped.to_csv(base_path / "TE_dropped_insuff.csv", index=False)
 TE_tailoff_dropped.to_csv(base_path / "TE_dropped_tailoff.csv", index=False)

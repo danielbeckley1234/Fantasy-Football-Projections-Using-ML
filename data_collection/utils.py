@@ -15,12 +15,14 @@ def vol_check(
         vol_cols: list, 
         prod_thresholds: list,
         player_col: str = "Player",
+        id_col: str = "gsis_id",
         year_col: str = "Year",
         games_col: str = "G",
         last_season_col: str = "last_season",
         min_prod: int = 2,
         curr_year_exempt: bool = True,
         manual_keep: set = frozenset(),
+        manual_keep_ids: set = frozenset()
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 
     vol_cols = list(vol_cols)
@@ -34,7 +36,7 @@ def vol_check(
         prod_ind |= (df[col] >= threshold) & (df[games_col] > 3)
     dead_ind = ~prod_ind
 
-    temp = df[[player_col, year_col, last_season_col]].copy()
+    temp = df[[player_col, year_col, last_season_col, id_col]].copy()
     temp["_prod"] = prod_ind
     temp["_dead"] = dead_ind
     temp = temp.sort_values(year_col)
@@ -65,8 +67,10 @@ def vol_check(
         if prod_seasons < min_prod:
             rookie = curr_year_exempt and years == [max_year] 
             prod_rookie = rookie and prod_seasons >= 1
+            player_ids = set(g[id_col].dropna().unique())
             manual_exempt = player in manual_keep
-            if not (prod_rookie or manual_exempt):
+            id_exempt = bool (player_ids & manual_keep_ids)
+            if not (prod_rookie or manual_exempt or id_exempt):
                 insuff_prod.append(
                     {
                         player_col: player,
