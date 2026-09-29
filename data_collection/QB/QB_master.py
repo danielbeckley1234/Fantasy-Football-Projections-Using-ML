@@ -25,6 +25,7 @@ QB_nextgen = QB_nextgen.drop(columns=['TM']) # different naming conventions, won
 
 QB_adv = pd.read_excel(base_path / 'QB_adv.xlsx')
 QB_adv = QB_adv.drop(columns={'Player (TM)'})
+QB_adv = QB_adv.drop(columns=['SACK']) # already in base
 
 misc = pd.read_csv(data_path / "misc_data.csv")
 QB_misc = misc[misc['position'] == 'QB']
@@ -48,6 +49,7 @@ QB_master = QB_base.merge(QB_td, on=merge_keys, how="outer")
 QB_master = QB_master.merge(QB_redzone, on=backup_merge, how="outer")
 QB_master = QB_master.merge(QB_injuries, on=backup_merge, how="outer")
 QB_master['significant_injury'] = QB_master['significant_injury'].fillna(0)
+QB_master = QB_master.merge(QB_adv, on=merge_keys, how="outer")
 QB_master = QB_master.merge(QB_nextgen, on=backup_merge, how="outer")
 QB_master = QB_master.merge(QB_misc, on=backup_merge, how="left")
 
