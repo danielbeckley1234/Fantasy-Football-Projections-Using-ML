@@ -1,9 +1,9 @@
 WRTE_targets = ['TGT', 'REC', 'RecYDS', 'RecTD', 'ATT', 'RusYDS', 'RusTD']
-WRTE_counting = WRTE_targets + ['RZREC', 'RZTGT', 'RZATT', 'Routes', 'CATCHABLE_TGT', 'Drops']
-WRTE_lag1s = ['RecTD%', 'RuTD%', 'xRecTD%', 'xRuTD%', 'significant_injury', 'Snaps/G',
+WRTE_counting = WRTE_targets + ['RZREC', 'RZTGT', 'RZATT', 'Routes', 'CATCHABLE_TGT', 'DROPS']
+WRTE_lag1s = ['RecTD%', 'RuTD%', 'xRecTD%', 'xRuTD%', 'significant_injury', 'Snaps/G', 'RZATT/G',
               'RUSH %', 'TGT %', 'TOUCH %', 'YPRR', 'Open', 'Catch', 'YAC', 'Overall',
               'CUSH', 'SEP', 'TAY', 'TAY%', 'CTCH%', 'YAC/R', 'xYAC/R', '+/-', 'Routes/G', 'CATCHABLE_TGT/G']
-WRTE_lag2s = ['RZREC/G', 'RZTGT/G', 'RZTGT%', 'Drops/G']
+WRTE_lag2s = ['RZREC/G', 'RZTGT/G', 'RZTGT%', 'DROPS/G']
 
 WRTE_cross_features = ['Snaps/G', 'Snaps/G_lag1', 'significant_injury_lag1', 
     'draft_round_filled', 'draft_pick_filled', 'age', 'age_sq', 
@@ -12,7 +12,7 @@ WRTE_cross_features = ['Snaps/G', 'Snaps/G_lag1', 'significant_injury_lag1',
 
 WRTE_rec_base_features = ['TGT/G', 'TGT/G_lag1', 'TGT/G_lag2', 'TGT/G_lag3', 'TGT/G_std3',
     'REC/G', 'REC/G_lag1', 'REC/G_lag2', 'REC/G_lag3', 'CATCHABLE_TGT/G', 'CATCHABLE_TGT/G_lag1',
-    'RecYDS/G', 'RecYDS/G_lag1', 'RecYDS/G_lag2', 'RecYDS/G_lag3', 'Drops/G', 'Drops/G_lag1', 'Drops/G_lag2',
+    'RecYDS/G', 'RecYDS/G_lag1', 'RecYDS/G_lag2', 'RecYDS/G_lag3', 'DROPS/G', 'DROPS/G_lag1', 'DROPS/G_lag2',
     'Routes/G', 'Routes/G_lag1', 'Open', 'Open_lag1', 'Catch', 'Catch_lag1', 
     'YAC', 'YAC_lag1', 'Overall', 'Overall_lag1', 
     'TGT %', 'TGT %_lag1', 'YPRR', 'YPRR_lag1',
@@ -31,7 +31,7 @@ WR_TE_target_feature_map = {
         'RZTGT/G_lag2', 'RZTGT%', 'RZTGT%_lag1'] + WRTE_cross_features + WRTE_rec_base_features,
     'ATT': WRTE_cross_features + WRTE_rush_base_features,
     'RusYDS': WRTE_cross_features + WRTE_rush_base_features,
-    'RusTD': ['RusTD/G', 'RusTD/G_lag1', 'RZATT/G', 'RZATT/G_lag1'
+    'RusTD': ['RusTD/G', 'RusTD/G_lag1', 'RZATT/G', 'RZATT/G_lag1',
         'RuTD%', 'RuTD%_lag1', 'xRuTD%', 'xRuTD%_lag1'] + WRTE_cross_features + WRTE_rush_base_features,
 }
 

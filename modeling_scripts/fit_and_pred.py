@@ -10,17 +10,11 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 import lightgbm as lgb
 import statsmodels.api as sm
 
-from modeling_prep import build_features, target_feature_map, target_cols, targets
-
+from base_prep import build_features
 RANDOM_STATE = 42
 
 
 ## fitting and predicting functions
-def load_engineer(path: str) -> pd.DataFrame:
-    raw = pd.read_csv(path)
-    df = build_features(raw)
-    return df
-
 def fit_ridge(X_tr, y_tr):
     scaler = StandardScaler().fit(X_tr)
     model = RidgeCV(alphas=np.logspace(-2, 3, 30), cv=5).fit(scaler.transform(X_tr), y_tr)
@@ -70,9 +64,16 @@ def pred_mixed(fit, X_imp, groups):
     adj = np.array([re_dict[g].values[0] if g in re_dict else 0.0 for g in groups])
     return base + adj
 
-
 ## apply/compare model errors (mae, rmse), refit on data
-def eval_pred(df: pd.DataFrame, holdout_year: int=2024, predict_from_year: int=2025):
+def eval_pred(
+        df: pd.DataFrame, 
+        target_cols: list,
+        targets: list,
+        target_feature_map: list,
+        pos: str,
+        holdout_year: int=2024, 
+        predict_from_year: int=2025,
+        ):
     transitions = df[df[target_cols].notna().any(axis=1)].copy()
     comparison_rows = []
     best_model_per_target = {}
@@ -171,11 +172,18 @@ def eval_pred(df: pd.DataFrame, holdout_year: int=2024, predict_from_year: int=2
     for stat in targets:
         pred_out[f'{stat}'] = round(pred_out['Player'].map(preds[stat]) * 17, 0)
 
-    def to_fantasy_points(rusyds, rustd, rec, recyds, rectd):
+    def flex_to_fpts(rusyds, rustd, rec, recyds, rectd):
         return 0.1 * (rusyds + recyds) + 6 * (rustd + rectd) + rec
+    def qb_to_fpts(pasyds, pastd, int, rusyds, rustd):
+        return 0.04 * (pasyds) + 4 * (pastd) - 2 * (int) + 0.1 * (rusyds) + 6 * (rustd)
 
-    pred_out['FPTs'] = to_fantasy_points(
-        pred_out['RusYDS'], pred_out['RusTD'], pred_out['REC'], pred_out['RecYDS'], pred_out['RecTD'])
-    pred_out['FPT/G'] = round(pred_out['FPTs'] / 17, 1)
+    if pos in ['RB', 'TE', 'WR']:
+        pred_out['FPTS'] = flex_to_fpts(
+            pred_out['RusYDS'], pred_out['RusTD'], pred_out['REC'], pred_out['RecYDS'], pred_out['RecTD'])
+        pred_out['FPTS/G'] = round(pred_out['FPTS'] / 17, 1)
+    elif pos == 'QB':
+        pred_out['FPTS'] = qb_to_fpts(
+            pred_out['pasYDS'], pred_out['pasTD'], pred_out['INT'], pred_out['rusYDS'], pred_out['rusTD'])
+        pred_out['FPTS/G'] = round(pred_out['FPTS'] / 17, 1) 
 
     return comparison_df, best_df, pred_out

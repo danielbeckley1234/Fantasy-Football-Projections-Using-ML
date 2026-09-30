@@ -14,6 +14,7 @@ QB_base = QB_base.drop(columns=['Player (TM)'])
 
 QB_td = pd.read_excel(base_path / "QB_TD.xlsx")
 QB_td = QB_td.drop(columns=['Player (TM)'])
+QB_td = QB_td.rename(columns={'xRuTD': 'xRuTD%'})
 
 QB_redzone = pd.read_excel(base_path / "QB_redzone.xlsx")
 QB_redzone = QB_redzone.drop(columns=['Player (TM)'])

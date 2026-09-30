@@ -38,4 +38,4 @@ RB_target_feature_map = {
         'In5TG/G', 'In5TG/G_lag1', 'In5TG/G_lag2'] + RB_cross_features + RB_rec_base_features
 }
 
-target_cols = [f'target_{c}/G' for c in RB_targets]
+RB_target_cols = [f'target_{c}/G' for c in RB_targets]

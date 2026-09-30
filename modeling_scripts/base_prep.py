@@ -42,16 +42,19 @@ def build_features(
 
 # stage/trajectory in career evaluator
     def pct_of_peak_role(sub: pd.DataFrame) -> pd.DataFrame:
-        sub = sub.sort_values('Year')
+        sub = sub.sort_values('Year').copy()
+        
+        if 'touches' in sub.columns:
+            col = 'touches'
+        elif 'pasATT' in sub.columns:
+            col = 'pasATT'
+        # elif 'FGA+XPA' in df.columns():
+        #     vol_val = row['FGA+XPA'] if pd.notna(row['FGA+XPA']) else 0.0
+        else: 
+            raise ValueError(f"no vol_col found")
+        
         prior_vol, pct_peak_vol = [], []
-        for _, row in sub.iterrows():
-            if 'touches' in df.columns:
-                vol_val = row['touches'] if pd.notna(row['touches']) else 0.0
-            # elif 'pATT' in df.columns():
-            #     vol_val = row['pATT'] if pd.notna(row['pATT']) else 0.0
-            # elif 'FG+XP' in df.columns():
-            #     vol_val = row['FG+XP'] if pd.notna(row['FG+XP']) else 0.0
-
+        for vol_val in sub[col].fillna(0.0).tolist():
             # rookies/first observed season
             if len(prior_vol) == 0:
                 pv = np.nan
@@ -96,8 +99,8 @@ def build_features(
                 df[f'{col}/G_std3'] = g[f'{col}/G'].apply(lambda s: s.shift(1).rolling(3, min_periods=2).std())
     elif pos in ['WR', 'TE']:
         df[f'TGT/G_std3'] = g[f'TGT/G'].apply(lambda s: s.shift(1).rolling(3, min_periods=2).std())
-    # elif pos == 'QB':
-    #     df[f'pATT/G_std3'] = g[f'pATT/G'].apply(lambda s: s.shift(1).rolling(3, min_periods=2).std())
+    elif pos == 'QB':
+        df[f'pasATT/G_std3'] = g[f'pasATT/G'].apply(lambda s: s.shift(1).rolling(3, min_periods=2).std())
     # elif pos == 'K':
     #     df[f'FGA/G_std3'] = g[f'FGA/G'].apply(lambda s: s.shift(1).rolling(3, min_periods=2).std())
 

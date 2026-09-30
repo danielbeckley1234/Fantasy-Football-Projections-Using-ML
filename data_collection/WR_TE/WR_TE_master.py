@@ -11,8 +11,10 @@ from utils import vol_check, apply_vol_check, normalize_player
 # read data and drop/fix necessary columns
 WR_base = pd.read_excel(base_path / "WR_base.xlsx")
 WR_base = WR_base.drop(columns=['Player (TM)', 'TGT %']) # tgt% redundant with other dataset
+WR_base = WR_base.rename(columns={'TD': 'RecTD'})
 TE_base = pd.read_excel(base_path / "TE_base.xlsx")
 TE_base = TE_base.drop(columns=['Player (TM)', 'TGT %'])
+TE_base = TE_base.rename(columns={'TD': 'RecTD'})
 
 WR_td = pd.read_excel(base_path / "WR_TD.xlsx")
 WR_td = WR_td.drop(columns=['Player (TM)'])

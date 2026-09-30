@@ -1,10 +1,10 @@
 QB_targets = ['CMP', 'pasATT', 'pasYDS', 'pasTD', 'INT', 'ATT', 'rusYDS', 'rusTD']
-QB_counting = QB_targets + ['SACKS', 'RZCMP', 'RZPasATT', 'RZPasTD', 
+QB_counting = QB_targets + ['SACKS', 'RZCMP', 'RZPasATT', 'RZPasTD', 'RZATT',
     'RZRusYDS', 'RZRusTD', 'HRRY', 'POOR', 'DROP']
 QB_lag1s = ['CMP%', 'Y/A', 'PaTD%', 'xPaTD%', 'RuTD%', 'xRuTD%',
-    'RZCMP/G', 'RZPasATT/G', 'RZCMP%', 'significant_injury', 'DROP/G',
+    'RZCMP/G', 'RZPasATT/G', 'RZCMP%', 'significant_injury',
     'HRRY/G', 'POOR/G', 'CAY', 'IAY', 'AYD', 'AGG%', 'xCMP%', '+/-']
-QB_lag2s = ['RZATT/G', 'RZRusTD/G', 'SACKS/G']
+QB_lag2s = ['RZATT/G', 'RZRusTD/G', 'SACKS/G', 'DROP/G']
 
 QB_cross_features = ['significant_injury_lag1', 'draft_round_filled', 'draft_pick_filled', 'age', 'age_sq', 
     'years', 'inflated_apy', 'inflated_guaranteed', 'pct_gtd_sign', 
@@ -22,6 +22,7 @@ QB_rush_base_features = ['ATT/G', 'ATT/G_lag1', 'rusYDS/G', 'rusYDS/G_lag1']
 QB_target_feature_map = {
     'CMP': QB_cross_features + QB_pass_base_features + ['CAY'],
     'pasATT': QB_cross_features + QB_pass_base_features + ['IAY', 'AYD'],
+    'pasYDS': QB_cross_features + QB_pass_base_features + ['CAY', 'IAY', 'AYD'],
     'pasTD': ['PaTD%', 'PaTD%_lag1', 'xPaTD%', 'xPaTD%_lag1', 'RZCMP/G', 'RZCMP/G_lag1',
               'RZPasATT/G', 'RZPasATT/G_lag1', 'RZCMP%', 'RZCMP%_lag1'] + QB_cross_features + QB_pass_base_features,
     'INT': QB_cross_features + QB_pass_base_features,
