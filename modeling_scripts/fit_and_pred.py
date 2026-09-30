@@ -9,8 +9,6 @@ from sklearn.impute import SimpleImputer
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 import lightgbm as lgb
 import statsmodels.api as sm
-
-from base_prep import build_features
 RANDOM_STATE = 42
 
 
@@ -122,6 +120,8 @@ def eval_pred(
 
         best_mae = np.inf
         best_name = None
+        second_mae = np.inf
+        second_name = None
         for name, (fit, pred) in results.items():
             valid = ~np.isnan(pred)
             if valid.sum() == 0:
@@ -131,37 +131,43 @@ def eval_pred(
             comparison_rows.append({'Stat': stat, 'Model': name, 'MAE/G': round(mae, 4), 
                 'RMSE/G': round(rmse, 4), 'N_holdout': int(valid.sum())})
             if mae < best_mae:
-                best_mae = mae
-                best_name = name
+                second_mae, second_name = best_mae, best_name
+                best_mae, best_name = mae, name
+            elif mae < second_mae:
+                second_mae, second_name = mae, name
 
         best_model_per_target[stat] = best_name
 
+        def fit_and_pred(name, X_all_imp, X_all_raw, y_all, groups_all, X_pred_imp, X_pred_raw, groups_pred):
+            if name == 'Ridge':
+                fit = fit_ridge(X_all_imp, y_all)
+                return pred_ridge(fit, X_pred_imp)
+            elif name == 'Lasso':
+                fit = fit_lasso(X_all_imp, y_all)
+                return pred_lasso(fit, X_pred_imp)
+            elif name == 'GBM':
+                fit = fit_gbm(X_all_raw, y_all)
+                return fit['model'].predict(X_pred_raw)
+            elif name == 'MixedLM':
+                fit = fit_mixed(X_all_imp, y_all, groups_all)
+                return pred_mixed(fit, X_pred_imp, groups_pred)
+            return np.full(len(X_pred_imp), np.nan)
+        
         X_all_raw = sub[feature_cols]
         y_all = sub[tgt_col]
         groups_all = sub['gsis_id']
         imputer_all = SimpleImputer(strategy='median').fit(X_all_raw)
         X_all_imp = pd.DataFrame(imputer_all.transform(X_all_raw), columns=feature_cols, index=X_all_raw.index)
-
         X_pred_raw = pred_rows[feature_cols]
         X_pred_imp = pd.DataFrame(imputer_all.transform(X_pred_raw), columns=feature_cols, index=X_pred_raw.index)
         groups_pred = pred_rows['gsis_id']
 
-        if best_name == 'Ridge':
-            fit = fit_ridge(X_all_imp, y_all)
-            final_pred = pred_ridge(fit, X_pred_imp)
-        elif best_name == 'Lasso':
-            fit = fit_lasso(X_all_imp, y_all)
-            final_pred = pred_lasso(fit, X_pred_imp)
-        elif best_name == 'GBM':
-            fit = fit_gbm(X_all_raw, y_all)
-            final_pred = fit['model'].predict(X_pred_raw)
-        elif best_name == 'MixedLM':
-            fit = fit_mixed(X_all_imp, y_all, groups_all)
-            final_pred = pred_mixed(fit, X_pred_imp, groups_pred)
-        else:
-            final_pred = np.full(len(pred_rows), np.nan)
-
-        final_pred = np.clip(final_pred, 0, None)
+        final_pred = fit_and_pred(best_name, X_all_imp, X_all_raw, y_all, groups_all, X_pred_imp, X_pred_raw, groups_pred)
+        if np.all(np.isnan(final_pred)) and second_name is not None:
+            print(f" [{pos}] stat={stat}: {best_name} produce all NaNs, falling back to {second_name}")
+            final_pred = fit_and_pred(second_name, X_all_imp, X_all_raw, y_all, groups_all, X_pred_imp, X_pred_raw, groups_pred)
+        
+        find_pred = np.clip(final_pred, 0, None)
         preds[stat] = dict(zip(pred_rows['Player'], final_pred))
 
     comparison_df = pd.DataFrame(comparison_rows).sort_values(['Stat', 'MAE/G'])
