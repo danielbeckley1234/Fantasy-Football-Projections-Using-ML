@@ -12,18 +12,27 @@ from data_collection.QB.QB_map import QB_targets, QB_counting, QB_lag1s, QB_lag2
 from data_collection.RB.RB_map import RB_targets, RB_counting, RB_lag1s, RB_lag2s, RB_target_feature_map, RB_target_cols
 from data_collection.WR_TE.WR_TE_map import WRTE_targets, WRTE_counting, WRTE_lag1s, WRTE_lag2s, WR_TE_target_feature_map, WRTE_target_cols
 
+starters = pd.read_csv(project_path / 'data_collection/starters.csv')
+starter_ids = set(starters['gsis_id'])
 
 QB_df = pd.read_csv(project_path / 'data_collection/QB/QB_MASTER.csv')
 QB_df = build_features(QB_df, QB_targets, QB_counting, QB_lag1s, QB_lag2s, 'QB')
+QB_df = QB_df[QB_df['gsis_id'].isin(starter_ids)]
 print("Engineered feature rows:", QB_df.shape)
+
 RB_df = pd.read_csv(project_path / 'data_collection/RB/RB_MASTER.csv')
 RB_df = build_features(RB_df, RB_targets, RB_counting, RB_lag1s, RB_lag2s, 'RB')
+RB_df = RB_df[RB_df['gsis_id'].isin(starter_ids)]
 print("Engineered feature rows:", RB_df.shape)
+
 WR_df = pd.read_csv(project_path / 'data_collection/WR_TE/WR_MASTER.csv')
 WR_df = build_features(WR_df, WRTE_targets, WRTE_counting, WRTE_lag1s, WRTE_lag2s, 'WR')
+WR_df = WR_df[WR_df['gsis_id'].isin(starter_ids)]
 print("Engineered feature rows:", WR_df.shape)
+
 TE_df = pd.read_csv(project_path / 'data_collection/WR_TE/TE_MASTER.csv')
 TE_df = build_features(TE_df, WRTE_targets, WRTE_counting, WRTE_lag1s, WRTE_lag2s, 'TE')
+TE_df = TE_df[TE_df['gsis_id'].isin(starter_ids)]
 print("Engineered feature rows:", TE_df.shape)
 
 QB_comp_df, QB_best_df, QB_pred_out = eval_pred(
