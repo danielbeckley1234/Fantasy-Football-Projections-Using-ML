@@ -11,9 +11,8 @@ inc_years = list(range(2018, 2027))
 
 # load data
 players = nfl.load_players().to_pandas()
-print(players.head(5))
 contracts = nfl.load_contracts().to_pandas()
-print(contracts.head(5))
+boxdef = nfl.load_nextgen_stats(seasons=inc_years, stat_type="rushing").to_pandas()
 
 # initial filtering and explode seasons for each year of interest
 players = players[player_keep]
@@ -42,8 +41,15 @@ contracts["Year"] = contracts["Year"].astype(int)
 contracts = (contracts.sort_values("year_signed", ascending=False)
              .drop_duplicates(subset=["gsis_id", "Year"], keep="first"))
 
+boxdef = boxdef[boxdef['season'].isin(inc_years)]
+boxdef = boxdef[boxdef['week'] == 0]  # season totals only
+boxdef = boxdef[['player_gsis_id', 'season','percent_attempts_gte_eight_defenders']]
+boxdef = boxdef.rename(columns={'player_gsis_id': 'gsis_id', 'season': 'Year', 'percent_attempts_gte_eight_defenders': '8+D%'})
+boxdef['8+D%'] = boxdef['8+D%'].round(3)
+
 # merge players with contracts, expand across years of contract
 misc = players.merge(contracts, on=['gsis_id', 'Year'], how='left')
+misc = misc.merge(boxdef, on=['gsis_id', 'Year'], how='left')
 misc = misc[misc['Year'] >= 2018]
 
 print(f"\nmisc data: {misc.shape}")
