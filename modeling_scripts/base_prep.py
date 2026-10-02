@@ -48,8 +48,6 @@ def build_features(
             col = 'touches'
         elif 'pasATT' in sub.columns:
             col = 'pasATT'
-        # elif 'FGA+XPA' in df.columns():
-        #     vol_val = row['FGA+XPA'] if pd.notna(row['FGA+XPA']) else 0.0
         else: 
             raise ValueError(f"no vol_col found")
         
@@ -100,10 +98,8 @@ def build_features(
     elif pos in ['WR', 'TE']:
         df[f'TGT/G_std3'] = g[f'TGT/G'].apply(lambda s: s.shift(1).rolling(3, min_periods=2).std())
     elif pos == 'QB':
-        df[f'pasATT/G_std3'] = g[f'pasATT/G'].apply(lambda s: s.shift(1).rolling(3, min_periods=2).std())
-    # elif pos == 'K':
-    #     df[f'FGA/G_std3'] = g[f'FGA/G'].apply(lambda s: s.shift(1).rolling(3, min_periods=2).std())
-
+        for col in ['ATT', 'pasATT']:
+            df[f'{col}/G_std3'] = g[f'{col}/G'].apply(lambda s: s.shift(1).rolling(3, min_periods=2).std())
 
     for col in targets:
         df[f'target_{col}/G'] = g[f'{col}/G'].shift(-1)
