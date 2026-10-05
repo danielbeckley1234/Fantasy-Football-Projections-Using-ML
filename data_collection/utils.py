@@ -81,31 +81,33 @@ def vol_check(
                 )
             continue
 
-        # tailoff (trailing dead seasons) check
+        # trailing dead seasons check
         dead_trail = 0
         for i in reversed(dead):
             if i:
                 dead_trail += 1
             else:
                 break
+        trail_dead_years = years[n - dead_trail:] if dead_trail else []
 
-        if dead_trail == 0 or dead_trail == n:
+        # leading dead seasons check
+        lead_dead = 0
+        for i in dead:
+            if i:
+                lead_dead += 1
+            else:
+                break
+        lead_dead_years = years[:lead_dead] if lead_dead else []
+
+        dead_years = sorted(set(trail_dead_years) | set(lead_dead_years))
+        if not dead_years:
             continue
 
-        prior_prod = prod[:n - dead_trail]
-        prod_seasons = sum(prior_prod)
-        if prod_seasons < min_prod:
-            continue
-
-        dead_years = years[n - dead_trail:]
-        last_year = g[last_season_col].iloc[0]
-        end_dead = last_year < proj_year
         tailoff.append(
             {
                 player_col: player,
                 "prod_seasons": prod_seasons,
                 "dead_years": dead_years,
-                "end_on_dead": end_dead,
             }
         )
 
