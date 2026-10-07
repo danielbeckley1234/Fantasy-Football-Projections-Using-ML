@@ -38,21 +38,25 @@ print("Engineered feature rows:", TE_df.shape)
 QB_comp_df, QB_best_df, QB_pred_out = eval_pred(
     QB_df, QB_target_cols, QB_targets, QB_target_feature_map, 'QB', holdout_year=2024, predict_from_year=2025)
 QB_comp_df['Pos'] = 'QB'
+QB_best_df['Pos'] = 'QB'
 QB_pred_out.sort_values('FPTS', ascending=False).to_csv('QB_2026_projections.csv', index=False)
 
 RB_comp_df, RB_best_df, RB_pred_out = eval_pred(
     RB_df, RB_target_cols, RB_targets, RB_target_feature_map, 'RB', holdout_year=2024, predict_from_year=2025)
 RB_comp_df['Pos'] = 'RB'
+RB_best_df['Pos'] = 'RB'
 RB_pred_out.sort_values('FPTS', ascending=False).to_csv('RB_2026_projections.csv', index=False)
 
 WR_comp_df, WR_best_df, WR_pred_out = eval_pred(
     WR_df, WRTE_target_cols, WRTE_targets, WR_TE_target_feature_map, 'WR', holdout_year=2024, predict_from_year=2025)
 WR_comp_df['Pos'] = 'WR'
+WR_best_df['Pos'] = 'WR'
 WR_pred_out.sort_values('FPTS', ascending=False).to_csv('WR_2026_projections.csv', index=False)
 
 TE_comp_df, TE_best_df, TE_pred_out = eval_pred(
     TE_df, WRTE_target_cols, WRTE_targets, WR_TE_target_feature_map, 'TE', holdout_year=2024, predict_from_year=2025)
 TE_comp_df['Pos'] = 'TE'
+TE_best_df['Pos'] = 'TE'
 TE_pred_out.sort_values('FPTS', ascending=False).to_csv('TE_2026_projections.csv', index=False)
 
 model_comps = pd.concat([QB_comp_df, RB_comp_df, WR_comp_df, TE_comp_df], axis=0)
