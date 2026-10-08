@@ -18,6 +18,12 @@ def build_features(
     for col in counting_stats:
         df[f'{col}/G'] = df[col] / games
 
+    # position-specific feature engineering
+    if pos == 'QB':
+        df['INT%'] = df['INT'] / df['pasATT']
+    if pos in ['WR', 'TE']:
+        df['xCTCH%'] = df['REC'] / df['CATCHABLE_TGT']
+
     # lag respective statistics
     g = df.groupby('gsis_id', group_keys=False)
     for col in lag1s:
@@ -30,7 +36,7 @@ def build_features(
         df[f'{col}/G_lag2'] = g[f'{col}/G'].shift(2)
         df[f'{col}/G_lag3'] = g[f'{col}/G'].shift(3) 
 
-        # universal feature engineered columns
+    # universal feature engineered columns
     df['years_exp'] = df['Year'] - df['rookie_season']
     df['team_change'] = (df['TM'] != g['TM'].shift(1)).astype(int)
     df.loc[g.cumcount() == 0, 'team_change'] = 0
@@ -91,10 +97,10 @@ def build_features(
     apply_sentinel_mask = never_full_mask & career_in_window
     df.loc[apply_sentinel_mask, 'years_since_full'] = df.loc[apply_sentinel_mask, 'years_exp'] + 2
 
-    # positional volume stds
+    # positional 
     if pos == 'RB':
         for col in ['ATT', 'TGT']:
-                df[f'{col}/G_std3'] = g[f'{col}/G'].apply(lambda s: s.shift(1).rolling(3, min_periods=2).std())
+            df[f'{col}/G_std3'] = g[f'{col}/G'].apply(lambda s: s.shift(1).rolling(3, min_periods=2).std())
     elif pos in ['WR', 'TE']:
         df[f'TGT/G_std3'] = g[f'TGT/G'].apply(lambda s: s.shift(1).rolling(3, min_periods=2).std())
     elif pos == 'QB':
