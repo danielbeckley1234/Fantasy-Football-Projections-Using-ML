@@ -75,12 +75,38 @@ def eval_pred(
     transitions = df[df[target_cols].notna().any(axis=1)].copy()
     comparison_rows = []
     best_model_per_target = {}
+    coefficients = {}
 
     preds = {stat: {} for stat in targets}
     pred_rows = df[df['Year'] == predict_from_year].copy()
     pred_rows = pred_rows.loc[pred_rows['last_season'] >= 2026].copy()
 
-
+    def get_coefs(fit, feature_cols, model_name):
+        if model_name in ['Ridge', 'Lasso']:
+            coef_scaled = fit['model'].coef_
+            coef_raw = coef_scaled / fit['scaler'].scale_
+            return pd.DataFrame({
+                'feature': feature_cols,
+                'standardized_coef': coef_scaled,
+                'raw_coef': coef_raw,
+            }).sort_values('standardized_coef', key=abs, ascending=False)
+        elif model_name == 'GBM':
+            return pd.DataFrame({
+                'feature': feature_cols,
+                'importance': fit['model'].feature_importances_,
+            }).sort_values('importance', ascending=False)
+        elif model_name == 'MixedLM':
+            if fit['result'] is None:
+                return pd.DataFrame(columns=['feature', 'standardized_coef'])
+            fe = fit['result'].fe_params
+            fe_vals = fe.values if hasattr(fe, 'values') else np.asarray(fe)
+            return pd.DataFrame({
+                'feature': ['intercept'] + list(feature_cols),
+                'standardized_coef': fe_vals,
+            }).sort_values('standardized_coef', key=abs, ascending=False)
+        else:
+            return pd.DataFrame()
+            
     for stat in targets:
         tgt_col = f'target_{stat}/G'
         feature_cols = target_feature_map[stat]
@@ -141,17 +167,17 @@ def eval_pred(
         def fit_and_pred(name, X_all_imp, X_all_raw, y_all, groups_all, X_pred_imp, X_pred_raw, groups_pred):
             if name == 'Ridge':
                 fit = fit_ridge(X_all_imp, y_all)
-                return pred_ridge(fit, X_pred_imp)
+                return fit, pred_ridge(fit, X_pred_imp)
             elif name == 'Lasso':
                 fit = fit_lasso(X_all_imp, y_all)
-                return pred_lasso(fit, X_pred_imp)
+                return fit, pred_lasso(fit, X_pred_imp)
             elif name == 'GBM':
                 fit = fit_gbm(X_all_raw, y_all)
-                return fit['model'].predict(X_pred_raw)
+                return fit, fit['model'].predict(X_pred_raw)
             elif name == 'MixedLM':
                 fit = fit_mixed(X_all_imp, y_all, groups_all)
-                return pred_mixed(fit, X_pred_imp, groups_pred)
-            return np.full(len(X_pred_imp), np.nan)
+                return fit, pred_mixed(fit, X_pred_imp, groups_pred)
+            return fit, np.full(len(X_pred_imp), np.nan)
         
         X_all_raw = sub[feature_cols]
         y_all = sub[tgt_col]
@@ -162,13 +188,14 @@ def eval_pred(
         X_pred_imp = pd.DataFrame(imputer_all.transform(X_pred_raw), columns=feature_cols, index=X_pred_raw.index)
         groups_pred = pred_rows['gsis_id']
 
-        final_pred = fit_and_pred(best_name, X_all_imp, X_all_raw, y_all, groups_all, X_pred_imp, X_pred_raw, groups_pred)
+        fit, final_pred = fit_and_pred(best_name, X_all_imp, X_all_raw, y_all, groups_all, X_pred_imp, X_pred_raw, groups_pred)
         if np.all(np.isnan(final_pred)) and second_name is not None:
             print(f" [{pos}] stat={stat}: {best_name} produce all NaNs, falling back to {second_name}")
-            final_pred = fit_and_pred(second_name, X_all_imp, X_all_raw, y_all, groups_all, X_pred_imp, X_pred_raw, groups_pred)
+            fit, final_pred = fit_and_pred(second_name, X_all_imp, X_all_raw, y_all, groups_all, X_pred_imp, X_pred_raw, groups_pred)
         
-        find_pred = np.clip(final_pred, 0, None)
+        final_pred = np.clip(final_pred, 0, None)
         preds[stat] = dict(zip(pred_rows['Player'], final_pred))
+        coefficients[stat] = get_coefs(fit, feature_cols, best_name)
 
     comparison_df = pd.DataFrame(comparison_rows).sort_values(['Stat', 'MAE/G'])
     best_df = pd.DataFrame([{'Stat': k, 'Best_Model': v} for k, v in best_model_per_target.items()])
@@ -192,4 +219,4 @@ def eval_pred(
             pred_out['pasYDS'], pred_out['pasTD'], pred_out['INT'], pred_out['rusYDS'], pred_out['rusTD'])
         pred_out['FPTS/G'] = round(pred_out['FPTS'] / 17, 1) 
 
-    return comparison_df, best_df, pred_out
+    return comparison_df, best_df, pred_out, coefficients
