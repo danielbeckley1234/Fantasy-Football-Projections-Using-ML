@@ -144,9 +144,9 @@ def eval_pred(
         pred = pred_mixed(mixed_fit, X_val_imp, groups_val)
         results['MixedLM'] = (mixed_fit, pred)
 
-        best_mae = np.inf
+        best_rmse = np.inf
         best_name = None
-        second_mae = np.inf
+        second_rmse = np.inf
         second_name = None
         for name, (fit, pred) in results.items():
             valid = ~np.isnan(pred)
@@ -154,13 +154,13 @@ def eval_pred(
                 continue
             mae = mean_absolute_error(y_val[valid], pred[valid])
             rmse = np.sqrt(mean_squared_error(y_val[valid], pred[valid]))
-            comparison_rows.append({'Stat': stat, 'Model': name, 'MAE/G': round(mae, 4), 
-                'RMSE/G': round(rmse, 4), 'N_holdout': int(valid.sum())})
-            if mae < best_mae:
-                second_mae, second_name = best_mae, best_name
-                best_mae, best_name = mae, name
-            elif mae < second_mae:
-                second_mae, second_name = mae, name
+            comparison_rows.append({'Stat': stat, 'Model': name, 'RMSE/G': round(rmse, 4), 
+                'MAE/G': round(mae, 4), 'N_holdout': int(valid.sum())})
+            if rmse < best_rmse:
+                second_rmse, second_name = best_rmse, best_name
+                best_rmse, best_name = rmse, name
+            elif rmse < second_rmse:
+                second_rmse, second_name = rmse, name
 
         best_model_per_target[stat] = best_name
 
@@ -197,7 +197,7 @@ def eval_pred(
         preds[stat] = dict(zip(pred_rows['Player'], final_pred))
         coefficients[stat] = get_coefs(fit, feature_cols, best_name)
 
-    comparison_df = pd.DataFrame(comparison_rows).sort_values(['Stat', 'MAE/G'])
+    comparison_df = pd.DataFrame(comparison_rows).sort_values(['Stat', 'RMSE/G'])
     best_df = pd.DataFrame([{'Stat': k, 'Best_Model': v} for k, v in best_model_per_target.items()])
 
     pred_out = pred_rows[['Player', 'TM', 'age', 'years_exp']].copy()
