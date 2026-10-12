@@ -46,7 +46,7 @@ def fit_mixed(X_tr_imp, y_tr, groups_tr):
     Xs = sm.add_constant(scaler.transform(X_tr_imp))
     try: 
         model = sm.MixedLM(y_tr.values, Xs, groups=groups_tr.values)
-        result = model.fit(reml=True, method='lbfgs', maxiter=200)
+        result = model.fit(reml=True, method='lbfgs', maxiter=500)
     except Exception:
         result = None
     return {'scaler': scaler, 'result': result}
