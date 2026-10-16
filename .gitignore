@@ -6,6 +6,28 @@ data/processed/
 *.json
 !data/README.md
 
+# Except projection outputs and master datasets
+!projections/
+!projections/*.csv
+
+!data_collection/
+!data_collection/QB/
+!data_collection/QB/*csv
+!data_collection/RB/
+!data_collection/RB/*csv
+!data_collection/WR_TE/
+!data_collection/WR_TE/*csv
+
+# Exclude miscellaneous files
+data_collection/**/*_dropped_*csv
+data_collection/**/temp.csv
+
+# Windows ADS shadows
+*:Zone.Identifier
+*Zone.Identifier*
+
+
+
 # Python
 __pycache__/
 *.pyc
