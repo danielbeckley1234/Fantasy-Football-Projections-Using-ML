@@ -46,3 +46,9 @@ typing-inspection==0.4.2
 typing_extensions==4.16.0
 tzdata==2026.3
 urllib3==2.7.0
+
+# jupyter / notebook
+jupyter==1.1.1
+jupyterlab==4.6.2
+ipykernel==7.3.0
+ipython==9.16.1
