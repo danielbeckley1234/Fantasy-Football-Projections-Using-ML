@@ -5,6 +5,9 @@ project_path = Path(__file__).resolve().parent.parent
 if str(project_path) not in sys.path:
     sys.path.insert(0, str(project_path))
 
+projections_path = project_path / 'projections'
+projections_path.mkdir(exist_ok=True)
+
 import pandas as pd
 from base_prep import build_features
 from fit_and_pred import eval_pred
@@ -50,35 +53,35 @@ QB_comp_df, QB_best_df, QB_pred_out, QB_coefs = eval_pred(
 for df in [QB_comp_df, QB_best_df]:
     df['Pos'] = 'QB'
 QB_coefs = format_coefs(QB_coefs, 'QB')
-QB_pred_out.sort_values('FPTS', ascending=False).to_csv('QB_2026_projections.csv', index=False)
+QB_pred_out.sort_values('FPTS', ascending=False).to_csv(projections_path / 'QB_2026_projections.csv', index=False)
 
 RB_comp_df, RB_best_df, RB_pred_out, RB_coefs = eval_pred(
     RB_df, RB_target_cols, RB_targets, RB_target_feature_map, 'RB', holdout_year=2024, predict_from_year=2025)
 for df in [RB_comp_df, RB_best_df]:
     df['Pos'] = 'RB'
 RB_coefs = format_coefs(RB_coefs, 'RB')
-RB_pred_out.sort_values('FPTS', ascending=False).to_csv('RB_2026_projections.csv', index=False)
+RB_pred_out.sort_values('FPTS', ascending=False).to_csv(projections_path / 'RB_2026_projections.csv', index=False)
 
 WR_comp_df, WR_best_df, WR_pred_out, WR_coefs = eval_pred(
     WR_df, WRTE_target_cols, WRTE_targets, WR_TE_target_feature_map, 'WR', holdout_year=2024, predict_from_year=2025)
 for df in [WR_comp_df, WR_best_df]:
     df['Pos'] = 'WR'
 WR_coefs = format_coefs(WR_coefs, 'WR')
-WR_pred_out.sort_values('FPTS', ascending=False).to_csv('WR_2026_projections.csv', index=False)
+WR_pred_out.sort_values('FPTS', ascending=False).to_csv(projections_path / 'WR_2026_projections.csv', index=False)
 
 TE_comp_df, TE_best_df, TE_pred_out, TE_coefs = eval_pred(
     TE_df, WRTE_target_cols, WRTE_targets, WR_TE_target_feature_map, 'TE', holdout_year=2024, predict_from_year=2025)
 for df in [TE_comp_df, TE_best_df]:
     df['Pos'] = 'TE'
 TE_coefs = format_coefs(TE_coefs, 'TE')
-TE_pred_out.sort_values('FPTS', ascending=False).to_csv('TE_2026_projections.csv', index=False)
+TE_pred_out.sort_values('FPTS', ascending=False).to_csv(projections_path / 'TE_2026_projections.csv', index=False)
 
 model_comps = pd.concat([QB_comp_df, RB_comp_df, WR_comp_df, TE_comp_df], axis=0)
-model_comps.to_csv('model_comps.csv', index=False)
+model_comps.to_csv(projections_path / 'model_comps.csv', index=False)
 best_models = pd.concat([QB_best_df, RB_best_df, WR_best_df, TE_best_df], axis=0)
-best_models.to_csv('best_models.csv', index=False)
+best_models.to_csv(projections_path / 'best_models.csv', index=False)
 coefs = pd.concat([QB_coefs, RB_coefs, WR_coefs, TE_coefs], axis=0)
-coefs.to_csv('model_coefs.csv', index=False)
+coefs.to_csv(projections_path / 'model_coefs.csv', index=False)
 
 print("\n 2026 Projections (top 5 QBs):")
 print(QB_pred_out.sort_values('FPTS', ascending=False).head(5).to_string(index=False))
